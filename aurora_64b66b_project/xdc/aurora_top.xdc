@@ -13,10 +13,9 @@
 ## GT Reference Clock Constraints
 ##
 ## The GT reference clock is a differential clock driving the IBUFDS_GTE2.
-## Typical frequency: 161.1328125 MHz for 10.3125 Gbps Aurora 64B66B.
-## Update the period and pin locations for your specific design.
+## Frequency: 156.25 MHz for 10 Gbps Aurora 64B66B.
 ###############################################################################
-create_clock -period 6.206 -name gt_refclk [get_ports gt_refclk_p]
+create_clock -period 6.400 -name gt_refclk [get_ports gt_refclk_p]
 
 ## GT Reference Clock Pin Assignment (GTHQ0 MGTREFCLK0)
 ## Update these pins based on your board schematic
@@ -27,9 +26,9 @@ create_clock -period 6.206 -name gt_refclk [get_ports gt_refclk_p]
 ## Init Clock Constraints
 ##
 ## The initialization clock is provided from the board system clock.
-## Typical frequency: 100 MHz.
+## Frequency: 50 MHz.
 ###############################################################################
-# create_clock -period 10.000 -name init_clk [get_ports init_clk_in]
+# create_clock -period 20.000 -name init_clk [get_ports init_clk_in]
 
 ## Init Clock Pin Assignment
 ## Update these pins based on your board schematic

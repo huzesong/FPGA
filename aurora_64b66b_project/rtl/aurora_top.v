@@ -3,7 +3,8 @@
 // Description: Top-level module for dual Aurora 64B66B design (Streaming mode).
 //
 // This module instantiates two Aurora 64B66B channels on adjacent GT quads
-// (GTHQ0 and GTHQ1) with shared clock resources.
+// (GTHQ0 and GTHQ1) with shared clock resources, and includes internal
+// data generation modules (aurora_data_gen) for TX.
 //
 // Architecture:
 //   ┌──────────────────────────────────────────────────────────────┐
@@ -26,9 +27,12 @@
 //   │  │ aurora_channel │   │ aurora_channel   │                  │
 //   │  │   Channel 0    │   │   Channel 1     │                  │
 //   │  │   (GTHQ0)      │   │   (GTHQ1)       │                  │
-//   │  │  ┌───┐ ┌───┐  │   │  ┌───┐ ┌───┐   │                  │
-//   │  │  │TX │ │RX │  │   │  │TX │ │RX │   │                  │
-//   │  │  └───┘ └───┘  │   │  └───┘ └───┘   │                  │
+//   │  │  ┌────────┐   │   │  ┌────────┐     │                  │
+//   │  │  │data_gen├►TX│   │  │data_gen├►TX  │                  │
+//   │  │  └────────┘   │   │  └────────┘     │                  │
+//   │  │  ┌───┐        │   │  ┌───┐          │                  │
+//   │  │  │RX │        │   │  │RX │          │                  │
+//   │  │  └───┘        │   │  └───┘          │                  │
 //   │  │  ┌──────────┐  │   │  ┌──────────┐   │                  │
 //   │  │  │Aurora IP │  │   │  │Aurora IP │   │                  │
 //   │  │  │(4 lanes) │  │   │  │(4 lanes) │   │                  │
@@ -42,11 +46,11 @@
 //
 // GT Configuration:
 //   - GT Type: v7gth (GTHE2)
+//   - Line Rate: 10 Gbps, GT Refclk: 156.25 MHz
 //   - Lanes: 4 per channel (8 total)
 //   - Channel 0: GTHQ0 (lanes 1-4)
 //   - Channel 1: GTHQ1 (lanes 1-4)
 //   - GT Refclk1: GTHQ0 (shared to GTHQ1)
-//   - GT Refclk2: None
 ///////////////////////////////////////////////////////////////////////////////
 
 `timescale 1ns / 1ps
@@ -58,7 +62,7 @@ module aurora_top #(
     //=========================================================================
     // System Clock and Reset
     //=========================================================================
-    input  wire                     init_clk_in,        // Board system clock (e.g., 50/100 MHz)
+    input  wire                     init_clk_in,        // Board system clock (50 MHz)
     input  wire                     sys_rst_n,          // Active-low system reset
 
     //=========================================================================
@@ -82,20 +86,6 @@ module aurora_top #(
     input  wire [LANE_NUM-1:0]      ch1_rxn,            // Channel 1 serial RX negative
     output wire [LANE_NUM-1:0]      ch1_txp,            // Channel 1 serial TX positive
     output wire [LANE_NUM-1:0]      ch1_txn,            // Channel 1 serial TX negative
-
-    //=========================================================================
-    // Channel 0 - User TX Data Interface (Streaming mode)
-    //=========================================================================
-    input  wire [DATA_WIDTH-1:0]    ch0_tx_din,         // Channel 0 TX data
-    input  wire                     ch0_tx_din_valid,   // Channel 0 TX data valid
-    output wire                     ch0_tx_ready,       // Channel 0 TX ready
-
-    //=========================================================================
-    // Channel 1 - User TX Data Interface (Streaming mode)
-    //=========================================================================
-    input  wire [DATA_WIDTH-1:0]    ch1_tx_din,         // Channel 1 TX data
-    input  wire                     ch1_tx_din_valid,   // Channel 1 TX data valid
-    output wire                     ch1_tx_ready,       // Channel 1 TX ready
 
     //=========================================================================
     // Channel 0 - User RX Data Interface (Streaming mode)
@@ -167,6 +157,20 @@ module aurora_top #(
     wire        tx_out_clk_ch0;
 
     //=========================================================================
+    // Internal signals - Data gen to channel TX (Channel 0)
+    //=========================================================================
+    wire [DATA_WIDTH-1:0]   ch0_tx_din;
+    wire                    ch0_tx_din_valid;
+    wire                    ch0_tx_ready;
+
+    //=========================================================================
+    // Internal signals - Data gen to channel TX (Channel 1)
+    //=========================================================================
+    wire [DATA_WIDTH-1:0]   ch1_tx_din;
+    wire                    ch1_tx_din_valid;
+    wire                    ch1_tx_ready;
+
+    //=========================================================================
     // System reset polarity conversion
     //=========================================================================
     assign sys_rst = ~sys_rst_n;
@@ -202,6 +206,38 @@ module aurora_top #(
         .qpll1_refclklost           (qpll1_refclklost),
         .reset_pb                   (reset_pb),
         .pma_init                   (pma_init)
+    );
+
+    //=========================================================================
+    // Data Generation Module - Channel 0
+    //
+    // Generates continuous 256-bit data with 8 x 32-bit incrementing fields.
+    //=========================================================================
+    aurora_data_gen #(
+        .DATA_WIDTH                 (DATA_WIDTH)
+    ) u_data_gen_ch0 (
+        .user_clk                   (user_clk),
+        .reset                      (reset_pb),
+        .channel_up                 (ch0_channel_up),
+        .tx_ready                   (ch0_tx_ready),
+        .tx_data                    (ch0_tx_din),
+        .tx_valid                   (ch0_tx_din_valid)
+    );
+
+    //=========================================================================
+    // Data Generation Module - Channel 1
+    //
+    // Generates continuous 256-bit data with 8 x 32-bit incrementing fields.
+    //=========================================================================
+    aurora_data_gen #(
+        .DATA_WIDTH                 (DATA_WIDTH)
+    ) u_data_gen_ch1 (
+        .user_clk                   (user_clk),
+        .reset                      (reset_pb),
+        .channel_up                 (ch1_channel_up),
+        .tx_ready                   (ch1_tx_ready),
+        .tx_data                    (ch1_tx_din),
+        .tx_valid                   (ch1_tx_din_valid)
     );
 
     //=========================================================================
