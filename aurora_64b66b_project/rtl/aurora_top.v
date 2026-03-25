@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Module: aurora_top
-// Description: Top-level module for dual Aurora 64B66B design.
+// Description: Top-level module for dual Aurora 64B66B design (Streaming mode).
 //
 // This module instantiates two Aurora 64B66B channels on adjacent GT quads
 // (GTHQ0 and GTHQ1) with shared clock resources.
@@ -36,7 +36,7 @@
 //   │  └────────────────┘   └──────────────────┘                  │
 //   └──────────────────────────────────────────────────────────────┘
 //
-// IP Core: Aurora 64B66B (11.2)
+// IP Core: Aurora 64B66B (11.2), Streaming mode
 // Chip: xc7vx690tffg1927-2L
 // Tool: Vivado 2018.3
 //
@@ -53,7 +53,6 @@
 
 module aurora_top #(
     parameter DATA_WIDTH = 256,                 // AXI4-Stream data width (4 lanes x 64 bits)
-    parameter KEEP_WIDTH = DATA_WIDTH / 8,      // tkeep width (bytes)
     parameter LANE_NUM   = 4                    // Number of GT lanes per channel
 ) (
     //=========================================================================
@@ -85,37 +84,29 @@ module aurora_top #(
     output wire [LANE_NUM-1:0]      ch1_txn,            // Channel 1 serial TX negative
 
     //=========================================================================
-    // Channel 0 - User TX Data Interface
+    // Channel 0 - User TX Data Interface (Streaming mode)
     //=========================================================================
     input  wire [DATA_WIDTH-1:0]    ch0_tx_din,         // Channel 0 TX data
-    input  wire [KEEP_WIDTH-1:0]    ch0_tx_din_keep,    // Channel 0 TX byte enables
-    input  wire                     ch0_tx_din_last,    // Channel 0 TX end of frame
     input  wire                     ch0_tx_din_valid,   // Channel 0 TX data valid
     output wire                     ch0_tx_ready,       // Channel 0 TX ready
 
     //=========================================================================
-    // Channel 1 - User TX Data Interface
+    // Channel 1 - User TX Data Interface (Streaming mode)
     //=========================================================================
     input  wire [DATA_WIDTH-1:0]    ch1_tx_din,         // Channel 1 TX data
-    input  wire [KEEP_WIDTH-1:0]    ch1_tx_din_keep,    // Channel 1 TX byte enables
-    input  wire                     ch1_tx_din_last,    // Channel 1 TX end of frame
     input  wire                     ch1_tx_din_valid,   // Channel 1 TX data valid
     output wire                     ch1_tx_ready,       // Channel 1 TX ready
 
     //=========================================================================
-    // Channel 0 - User RX Data Interface
+    // Channel 0 - User RX Data Interface (Streaming mode)
     //=========================================================================
     output wire [DATA_WIDTH-1:0]    ch0_rx_dout,        // Channel 0 RX data
-    output wire [KEEP_WIDTH-1:0]    ch0_rx_dout_keep,   // Channel 0 RX byte enables
-    output wire                     ch0_rx_dout_last,   // Channel 0 RX end of frame
     output wire                     ch0_rx_dout_valid,  // Channel 0 RX data valid
 
     //=========================================================================
-    // Channel 1 - User RX Data Interface
+    // Channel 1 - User RX Data Interface (Streaming mode)
     //=========================================================================
     output wire [DATA_WIDTH-1:0]    ch1_rx_dout,        // Channel 1 RX data
-    output wire [KEEP_WIDTH-1:0]    ch1_rx_dout_keep,   // Channel 1 RX byte enables
-    output wire                     ch1_rx_dout_last,   // Channel 1 RX end of frame
     output wire                     ch1_rx_dout_valid,  // Channel 1 RX data valid
 
     //=========================================================================
@@ -187,65 +178,39 @@ module aurora_top #(
 
     //=========================================================================
     // Clock and Reset Module
-    //
-    // Provides shared clock infrastructure for both Aurora channels:
-    //   - IBUFDS_GTE2 for GT reference clock
-    //   - BUFG for user_clk from tx_out_clk
-    //   - GT Common (QPLL) x2 for both quads
-    //   - Reset synchronization
     //=========================================================================
     aurora_clock_module u_clock_module (
-        // External clock inputs
         .gt_refclk_p                (gt_refclk_p),
         .gt_refclk_n                (gt_refclk_n),
         .init_clk_in                (init_clk_in),
-
-        // TX output clock from Channel 0
         .tx_out_clk_ch0             (tx_out_clk_ch0),
-
-        // QPLL reset requests from Aurora cores
         .qpll_reset_ch0             (qpll0_reset),
         .qpll_reset_ch1             (qpll1_reset),
-
-        // System reset
         .sys_rst                    (sys_rst),
-
-        // Generated clocks
         .gt_refclk                  (gt_refclk),
         .user_clk                   (user_clk),
         .sync_clk                   (sync_clk),
         .init_clk                   (init_clk),
         .drp_clk                    (drp_clk),
-
-        // QPLL outputs for Channel 0
         .qpll0_outclk               (qpll0_outclk),
         .qpll0_outrefclk            (qpll0_outrefclk),
         .qpll0_lock                 (qpll0_lock),
         .qpll0_refclklost           (qpll0_refclklost),
-
-        // QPLL outputs for Channel 1
         .qpll1_outclk               (qpll1_outclk),
         .qpll1_outrefclk            (qpll1_outrefclk),
         .qpll1_lock                 (qpll1_lock),
         .qpll1_refclklost           (qpll1_refclklost),
-
-        // Reset outputs
         .reset_pb                   (reset_pb),
         .pma_init                   (pma_init)
     );
 
     //=========================================================================
     // Aurora Channel 0 (GTHQ0)
-    //
-    // First Aurora channel using GT quad GTHQ0.
-    // Its tx_out_clk is used to generate the shared user_clk.
     //=========================================================================
     aurora_channel #(
         .DATA_WIDTH                 (DATA_WIDTH),
-        .KEEP_WIDTH                 (KEEP_WIDTH),
         .LANE_NUM                   (LANE_NUM)
     ) u_aurora_ch0 (
-        // Clocks and Resets
         .user_clk                   (user_clk),
         .sync_clk                   (sync_clk),
         .init_clk                   (init_clk),
@@ -253,58 +218,36 @@ module aurora_top #(
         .gt_refclk                  (gt_refclk),
         .reset_pb                   (reset_pb),
         .pma_init                   (pma_init),
-
-        // QPLL Interface
         .qpll_outclk                (qpll0_outclk),
         .qpll_outrefclk             (qpll0_outrefclk),
         .qpll_lock                  (qpll0_lock),
         .qpll_refclklost            (qpll0_refclklost),
         .qpll_reset                 (qpll0_reset),
-
-        // GT Serial Interface
         .rxp                        (ch0_rxp),
         .rxn                        (ch0_rxn),
         .txp                        (ch0_txp),
         .txn                        (ch0_txn),
-
-        // User TX Data
         .tx_din                     (ch0_tx_din),
-        .tx_din_keep                (ch0_tx_din_keep),
-        .tx_din_last                (ch0_tx_din_last),
         .tx_din_valid               (ch0_tx_din_valid),
         .tx_ready                   (ch0_tx_ready),
-
-        // User RX Data
         .rx_dout                    (ch0_rx_dout),
-        .rx_dout_keep               (ch0_rx_dout_keep),
-        .rx_dout_last               (ch0_rx_dout_last),
         .rx_dout_valid              (ch0_rx_dout_valid),
-
-        // Status
         .channel_up                 (ch0_channel_up),
         .lane_up                    (ch0_lane_up),
         .hard_err                   (ch0_hard_err),
         .soft_err                   (ch0_soft_err),
         .tx_out_clk                 (tx_out_clk_ch0),
-
-        // Diagnostics
         .rx_count                   (),
         .rx_error                   ()
     );
 
     //=========================================================================
     // Aurora Channel 1 (GTHQ1)
-    //
-    // Second Aurora channel using GT quad GTHQ1 (adjacent to GTHQ0).
-    // Shares the same user_clk, sync_clk, and reference clock as Channel 0.
-    // Its tx_out_clk is not used for clock generation (Channel 0's is used).
     //=========================================================================
     aurora_channel #(
         .DATA_WIDTH                 (DATA_WIDTH),
-        .KEEP_WIDTH                 (KEEP_WIDTH),
         .LANE_NUM                   (LANE_NUM)
     ) u_aurora_ch1 (
-        // Clocks and Resets (shared with Channel 0)
         .user_clk                   (user_clk),
         .sync_clk                   (sync_clk),
         .init_clk                   (init_clk),
@@ -312,41 +255,25 @@ module aurora_top #(
         .gt_refclk                  (gt_refclk),
         .reset_pb                   (reset_pb),
         .pma_init                   (pma_init),
-
-        // QPLL Interface (separate QPLL for this quad)
         .qpll_outclk                (qpll1_outclk),
         .qpll_outrefclk             (qpll1_outrefclk),
         .qpll_lock                  (qpll1_lock),
         .qpll_refclklost            (qpll1_refclklost),
         .qpll_reset                 (qpll1_reset),
-
-        // GT Serial Interface
         .rxp                        (ch1_rxp),
         .rxn                        (ch1_rxn),
         .txp                        (ch1_txp),
         .txn                        (ch1_txn),
-
-        // User TX Data
         .tx_din                     (ch1_tx_din),
-        .tx_din_keep                (ch1_tx_din_keep),
-        .tx_din_last                (ch1_tx_din_last),
         .tx_din_valid               (ch1_tx_din_valid),
         .tx_ready                   (ch1_tx_ready),
-
-        // User RX Data
         .rx_dout                    (ch1_rx_dout),
-        .rx_dout_keep               (ch1_rx_dout_keep),
-        .rx_dout_last               (ch1_rx_dout_last),
         .rx_dout_valid              (ch1_rx_dout_valid),
-
-        // Status
         .channel_up                 (ch1_channel_up),
         .lane_up                    (ch1_lane_up),
         .hard_err                   (ch1_hard_err),
         .soft_err                   (ch1_soft_err),
-        .tx_out_clk                 (),             // Not used (Ch0's tx_out_clk drives user_clk)
-
-        // Diagnostics
+        .tx_out_clk                 (),
         .rx_count                   (),
         .rx_error                   ()
     );

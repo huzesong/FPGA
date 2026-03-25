@@ -1,25 +1,26 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Module: aurora_tx_module
-// Description: TX data path module for Aurora 64B66B.
+// Description: TX data path module for Aurora 64B66B (Streaming mode).
 //
 // This module provides a user-facing data interface and converts it to
 // AXI4-Stream format for the Aurora IP core TX path.
 //
+// Streaming mode: No tlast or tkeep signals. Data flows continuously
+// as a stream without frame boundaries.
+//
 // Features:
-//   - Simple FIFO-like input interface (data, valid, ready)
-//   - AXI4-Stream TX output to Aurora IP
+//   - Simple user interface (data, valid, ready)
+//   - AXI4-Stream TX output to Aurora IP (Streaming: tdata, tvalid, tready)
 //   - Handles back-pressure from Aurora (s_axi_tx_tready)
 //   - Data gating when channel is not up
-//   - Support for variable-length frames via tlast and tkeep
 //
-// Data width: 256 bits (4 lanes x 64 bits) with 32-bit tkeep
+// Data width: 256 bits (4 lanes x 64 bits)
 ///////////////////////////////////////////////////////////////////////////////
 
 `timescale 1ns / 1ps
 
 module aurora_tx_module #(
-    parameter DATA_WIDTH = 256,                 // AXI4-Stream data width
-    parameter KEEP_WIDTH = DATA_WIDTH / 8       // tkeep width (bytes)
+    parameter DATA_WIDTH = 256                  // AXI4-Stream data width
 ) (
     //=========================================================================
     // Clock and Reset
@@ -31,8 +32,6 @@ module aurora_tx_module #(
     // User TX Data Interface
     //=========================================================================
     input  wire [DATA_WIDTH-1:0]    tx_din,         // TX data input
-    input  wire [KEEP_WIDTH-1:0]    tx_din_keep,    // TX byte enables
-    input  wire                     tx_din_last,    // TX end of frame
     input  wire                     tx_din_valid,   // TX data valid
     output wire                     tx_ready,       // TX ready (can accept data)
 
@@ -42,11 +41,9 @@ module aurora_tx_module #(
     input  wire                     channel_up,     // Aurora channel is up
 
     //=========================================================================
-    // AXI4-Stream TX Interface (to Aurora IP)
+    // AXI4-Stream TX Interface (to Aurora IP, Streaming mode)
     //=========================================================================
     output wire [DATA_WIDTH-1:0]    s_axi_tx_tdata,
-    output wire [KEEP_WIDTH-1:0]    s_axi_tx_tkeep,
-    output wire                     s_axi_tx_tlast,
     output wire                     s_axi_tx_tvalid,
     input  wire                     s_axi_tx_tready
 );
@@ -66,14 +63,12 @@ module aurora_tx_module #(
     assign tx_enable = ~reset & channel_up;
 
     //=========================================================================
-    // AXI4-Stream TX Output
+    // AXI4-Stream TX Output (Streaming mode: no tkeep, no tlast)
     //
     // Connect user data interface to Aurora AXI4-Stream TX.
     // Data is gated by tx_enable to prevent sending during link down.
     //=========================================================================
     assign s_axi_tx_tdata  = tx_din;
-    assign s_axi_tx_tkeep  = tx_din_keep;
-    assign s_axi_tx_tlast  = tx_din_last;
     assign s_axi_tx_tvalid = tx_din_valid & tx_enable;
 
     //=========================================================================
