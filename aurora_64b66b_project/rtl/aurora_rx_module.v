@@ -77,9 +77,9 @@ module aurora_rx_module #(
     // Pass AXI4-Stream RX data to user interface.
     // Data is gated by rx_enable.
     //=========================================================================
-    assign rx_dout       = m_axi_rx_tdata;
-    assign rx_dout_keep  = m_axi_rx_tkeep;
-    assign rx_dout_last  = m_axi_rx_tlast & rx_enable;
+    assign rx_dout       = rx_enable ? m_axi_rx_tdata : {DATA_WIDTH{1'b0}};
+    assign rx_dout_keep  = rx_enable ? m_axi_rx_tkeep : {KEEP_WIDTH{1'b0}};
+    assign rx_dout_last  = m_axi_rx_tlast  & rx_enable;
     assign rx_dout_valid = m_axi_rx_tvalid & rx_enable;
 
     //=========================================================================
