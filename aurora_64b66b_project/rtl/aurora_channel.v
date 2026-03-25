@@ -253,7 +253,8 @@ module aurora_channel #(
         .qpll_drpwe_in                (1'b0),
         // Init and control clocks
         .init_clk                     (init_clk),
-        // QPLL interface
+        // QPLL interface (port names use 'quad1' suffix — fixed by the IP generator,
+        // the actual quad is determined by the external GTHE2_COMMON connection)
         .gt_qpllclk_quad1_in          (gt_qpllclk_quad_in),
         .gt_qpllrefclk_quad1_in       (gt_qpllrefclk_quad_in),
         .gt_to_common_qpllreset_out   (gt_to_common_qpllreset_out),

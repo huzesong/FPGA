@@ -128,6 +128,19 @@ module aurora_top_tb;
     end
 
     //------------------------------------------------------------------------
+    // Link-up tracking
+    //------------------------------------------------------------------------
+    reg ch0_linked, ch1_linked;
+
+    initial begin
+        ch0_linked = 1'b0;
+        ch1_linked = 1'b0;
+    end
+
+    always @(posedge channel_up[0]) ch0_linked = 1'b1;
+    always @(posedge channel_up[1]) ch1_linked = 1'b1;
+
+    //------------------------------------------------------------------------
     // Simulation end
     //------------------------------------------------------------------------
     initial begin
@@ -135,9 +148,10 @@ module aurora_top_tb;
         $display("");
         $display("============================================");
         $display("  Simulation Complete (%0d ns)", SIM_TIME);
-        $display("  channel_up = %b", channel_up);
+        $display("  channel_up = %b  (linked: ch0=%b ch1=%b)",
+                 channel_up, ch0_linked, ch1_linked);
         $display("  error_flag = %b", error_flag);
-        if (channel_up == 2'b11 && error_flag == 2'b00)
+        if (ch0_linked && ch1_linked && channel_up == 2'b11 && error_flag == 2'b00)
             $display("  RESULT: *** PASS ***");
         else
             $display("  RESULT: *** FAIL ***");
