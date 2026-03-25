@@ -156,6 +156,7 @@ module aurora_64b66b_0 (
     //------------------------------------------------------------------------
     reg gt_pll_lock_r;
     reg [7:0] pll_cnt;
+    reg [7:0] ch_up_cnt;
 
     initial begin
         gt_pll_lock_r = 1'b0;
@@ -184,7 +185,6 @@ module aurora_64b66b_0 (
     //------------------------------------------------------------------------
     // Channel up / Lane up simulation
     //------------------------------------------------------------------------
-    reg [7:0] ch_up_cnt;
 
     always @(posedge user_clk) begin
         if (reset_pb || pma_init || mmcm_not_locked) begin
