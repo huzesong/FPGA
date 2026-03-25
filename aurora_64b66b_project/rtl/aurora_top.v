@@ -83,12 +83,6 @@ module aurora_top (
     wire        q0_qplllock;
     wire        q0_qpllrefclklost;
     wire        q0_qpllreset;
-    wire [7:0]  q0_qpll_drpaddr;
-    wire [15:0] q0_qpll_drpdi;
-    wire [15:0] q0_qpll_drpdo;
-    wire        q0_qpll_drpen;
-    wire        q0_qpll_drpwe;
-    wire        q0_qpll_drprdy;
 
     // QPLL signals - Quad 1
     wire        q1_qpllclk;
@@ -96,12 +90,6 @@ module aurora_top (
     wire        q1_qplllock;
     wire        q1_qpllrefclklost;
     wire        q1_qpllreset;
-    wire [7:0]  q1_qpll_drpaddr;
-    wire [15:0] q1_qpll_drpdi;
-    wire [15:0] q1_qpll_drpdo;
-    wire        q1_qpll_drpen;
-    wire        q1_qpll_drpwe;
-    wire        q1_qpll_drprdy;
 
     //------------------------------------------------------------------------
     // Reset generation
@@ -177,12 +165,6 @@ module aurora_top (
         .gt_to_common_qpllreset_out (q0_qpllreset),
         .gt_qplllock_in             (q0_qplllock),
         .gt_qpllrefclklost_in       (q0_qpllrefclklost),
-        .qpll_drpdo_out             (q0_qpll_drpdo),
-        .qpll_drprdy_out            (q0_qpll_drprdy),
-        .qpll_drpaddr_in            (q0_qpll_drpaddr),
-        .qpll_drpdi_in              (q0_qpll_drpdi),
-        .qpll_drpen_in              (q0_qpll_drpen),
-        .qpll_drpwe_in              (q0_qpll_drpwe),
         .channel_up                 (ch0_channel_up),
         .lane_up                    (ch0_lane_up),
         .hard_err                   (ch0_hard_err),
@@ -221,12 +203,6 @@ module aurora_top (
         .gt_to_common_qpllreset_out (q1_qpllreset),
         .gt_qplllock_in             (q1_qplllock),
         .gt_qpllrefclklost_in       (q1_qpllrefclklost),
-        .qpll_drpdo_out             (q1_qpll_drpdo),
-        .qpll_drprdy_out            (q1_qpll_drprdy),
-        .qpll_drpaddr_in            (q1_qpll_drpaddr),
-        .qpll_drpdi_in              (q1_qpll_drpdi),
-        .qpll_drpen_in              (q1_qpll_drpen),
-        .qpll_drpwe_in              (q1_qpll_drpwe),
         .channel_up                 (ch1_channel_up),
         .lane_up                    (ch1_lane_up),
         .hard_err                   (ch1_hard_err),
@@ -282,14 +258,14 @@ module aurora_top (
         .BGRCALOVRD          (5'b11111),
         .BGRCALOVRDENB       (1'b1),
         .RCALENB             (1'b1),
-        // DRP
-        .DRPADDR             (q0_qpll_drpaddr),
+        // DRP (tied off — not used)
+        .DRPADDR             (8'd0),
         .DRPCLK              (drp_clk),
-        .DRPDI               (q0_qpll_drpdi),
-        .DRPDO               (q0_qpll_drpdo),
-        .DRPEN               (q0_qpll_drpen),
-        .DRPRDY              (q0_qpll_drprdy),
-        .DRPWE               (q0_qpll_drpwe),
+        .DRPDI               (16'd0),
+        .DRPDO               (),
+        .DRPEN               (1'b0),
+        .DRPRDY              (),
+        .DRPWE               (1'b0),
         // Unused
         .GTGREFCLK           (1'b0),
         .GTNORTHREFCLK0      (1'b0),
@@ -342,14 +318,14 @@ module aurora_top (
         .BGRCALOVRD          (5'b11111),
         .BGRCALOVRDENB       (1'b1),
         .RCALENB             (1'b1),
-        // DRP
-        .DRPADDR             (q1_qpll_drpaddr),
+        // DRP (tied off — not used)
+        .DRPADDR             (8'd0),
         .DRPCLK              (drp_clk),
-        .DRPDI               (q1_qpll_drpdi),
-        .DRPDO               (q1_qpll_drpdo),
-        .DRPEN               (q1_qpll_drpen),
-        .DRPRDY              (q1_qpll_drprdy),
-        .DRPWE               (q1_qpll_drpwe),
+        .DRPDI               (16'd0),
+        .DRPDO               (),
+        .DRPEN               (1'b0),
+        .DRPRDY              (),
+        .DRPWE               (1'b0),
         // Unused
         .GTGREFCLK           (1'b0),
         .GTNORTHREFCLK0      (1'b0),

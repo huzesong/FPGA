@@ -30,13 +30,6 @@ module aurora_channel #(
     output wire         gt_to_common_qpllreset_out,
     input  wire         gt_qplllock_in,
     input  wire         gt_qpllrefclklost_in,
-    // QPLL DRP interface
-    input  wire [15:0]  qpll_drpdo_out,
-    input  wire         qpll_drprdy_out,
-    output wire [7:0]   qpll_drpaddr_in,
-    output wire [15:0]  qpll_drpdi_in,
-    output wire         qpll_drpen_in,
-    output wire         qpll_drpwe_in,
     // Status
     output wire         channel_up,
     output wire [3:0]   lane_up,
@@ -251,13 +244,13 @@ module aurora_channel #(
         .s_axi_rvalid_lane3           (s_axi_rvalid_lane3),
         .s_axi_rresp_lane3            (s_axi_rresp_lane3),
         .s_axi_rready_lane3           (1'b1),
-        // QPLL DRP
-        .qpll_drpaddr_in              (qpll_drpaddr_in),
-        .qpll_drpdi_in                (qpll_drpdi_in),
-        .qpll_drpdo_out               (qpll_drpdo_out),
-        .qpll_drprdy_out              (qpll_drprdy_out),
-        .qpll_drpen_in                (qpll_drpen_in),
-        .qpll_drpwe_in                (qpll_drpwe_in),
+        // QPLL DRP (directly tied off — not used in normal operation)
+        .qpll_drpaddr_in              (8'd0),
+        .qpll_drpdi_in                (16'd0),
+        .qpll_drpdo_out               (),
+        .qpll_drprdy_out              (),
+        .qpll_drpen_in                (1'b0),
+        .qpll_drpwe_in                (1'b0),
         // Init and control clocks
         .init_clk                     (init_clk),
         // QPLL interface
