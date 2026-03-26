@@ -278,13 +278,13 @@ module aurora_top (
         .QPLL_CP              (10'b0000011111),
         .QPLL_CP_MONITOR_EN   (1'b0),
         .QPLL_DMONITOR_SEL    (1'b0),
-        // QPLL_FBDIV encoding (shared between GTX and GTH, from Xilinx ten_gig_pcs_pma):
-        //   FBDIV=66 → 10'b0101000000, RATIO=1'b0  (10.3125 Gbps — standard Aurora rate)
-        //   FBDIV=64 → 10'b0011100000, RATIO=1'b1  (10.0 Gbps)
-        //   FBDIV=80 → 10'b0100100000, RATIO=1'b1  (10.0 Gbps with 125 MHz refclk)
-        .QPLL_FBDIV           (10'b0101000000),  // FBDIV=66 → VCO 10.3125 GHz
+        // QPLL_FBDIV encoding (from Xilinx-generated gt_common_wrapper):
+        //   FBDIV=64 → 10'b0011100000, RATIO=1'b1  (10.0 Gbps, 156.25 MHz refclk)
+        //   FBDIV=66 → 10'b0101000000, RATIO=1'b0  (10.3125 Gbps)
+        //   FBDIV=80 → 10'b0100100000, RATIO=1'b1  (10.0 Gbps, 125 MHz refclk)
+        .QPLL_FBDIV           (10'b0011100000),  // FBDIV=64 → VCO 10.0 GHz
         .QPLL_FBDIV_MONITOR_EN (1'b0),
-        .QPLL_FBDIV_RATIO     (1'b0),            // 1'b0 for FBDIV=66
+        .QPLL_FBDIV_RATIO     (1'b1),            // 1'b1 for FBDIV != 66
         .QPLL_INIT_CFG        (24'h000006),
         .QPLL_LOCK_CFG        (16'h05E8),
         .QPLL_LPF             (4'b1111),
@@ -355,13 +355,13 @@ module aurora_top (
         .QPLL_CP              (10'b0000011111),
         .QPLL_CP_MONITOR_EN   (1'b0),
         .QPLL_DMONITOR_SEL    (1'b0),
-        // QPLL_FBDIV encoding (shared between GTX and GTH, from Xilinx ten_gig_pcs_pma):
-        //   FBDIV=66 → 10'b0101000000, RATIO=1'b0  (10.3125 Gbps — standard Aurora rate)
-        //   FBDIV=64 → 10'b0011100000, RATIO=1'b1  (10.0 Gbps)
-        //   FBDIV=80 → 10'b0100100000, RATIO=1'b1  (10.0 Gbps with 125 MHz refclk)
-        .QPLL_FBDIV           (10'b0101000000),  // FBDIV=66 → VCO 10.3125 GHz
+        // QPLL_FBDIV encoding (from Xilinx-generated gt_common_wrapper):
+        //   FBDIV=64 → 10'b0011100000, RATIO=1'b1  (10.0 Gbps, 156.25 MHz refclk)
+        //   FBDIV=66 → 10'b0101000000, RATIO=1'b0  (10.3125 Gbps)
+        //   FBDIV=80 → 10'b0100100000, RATIO=1'b1  (10.0 Gbps, 125 MHz refclk)
+        .QPLL_FBDIV           (10'b0011100000),  // FBDIV=64 → VCO 10.0 GHz
         .QPLL_FBDIV_MONITOR_EN (1'b0),
-        .QPLL_FBDIV_RATIO     (1'b0),            // 1'b0 for FBDIV=66
+        .QPLL_FBDIV_RATIO     (1'b1),            // 1'b1 for FBDIV != 66
         .QPLL_INIT_CFG        (24'h000006),
         .QPLL_LOCK_CFG        (16'h05E8),
         .QPLL_LPF             (4'b1111),
