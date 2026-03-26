@@ -92,73 +92,77 @@ module aurora_top (
     wire        q1_qpllreset;
 
     //------------------------------------------------------------------------
-    // Reset generation
+    // Reset generation — matches Xilinx SUPPORT_RESET_LOGIC pattern
     //------------------------------------------------------------------------
-    reg [7:0] rst_cnt;
-    reg       rst_sync_r1, rst_sync_r2;
-    reg       pma_init_r;
+    // External reset (~sys_rst_n) is debounced in INIT_CLK domain and used
+    // as GT_RESET_IN.  SUPPORT_RESET_LOGIC then:
+    //  1. Debounces GT_RESET_IN (4 cycles, INIT_CLK) → gt_rst_r
+    //  2. Syncs gt_rst_r to USER_CLK (5-stage CDC) → gt_rst_sync
+    //  3. Generates SYSTEM_RESET (reset_pb) in USER_CLK domain
+    //  4. Delays GT_RESET_OUT (pma_init) by 20 INIT_CLK cycles
+    //     so protocol logic resets before GT transceiver resets.
+    //  • link_reset_out is NOT fed back into reset_pb.
+    //------------------------------------------------------------------------
 
+    // Sync external reset to INIT_CLK domain
+    reg rst_sync_r1, rst_sync_r2;
     always @(posedge init_clk) begin
         rst_sync_r1 <= ~sys_rst_n;
         rst_sync_r2 <= rst_sync_r1;
     end
 
-    always @(posedge init_clk) begin
-        if (rst_sync_r2) begin
-            rst_cnt    <= 8'd0;
-            pma_init_r <= 1'b1;
-        end else if (rst_cnt < 8'd255) begin
-            rst_cnt    <= rst_cnt + 8'd1;
-            pma_init_r <= 1'b1;
-        end else begin
-            pma_init_r <= 1'b0;
-        end
+    // Debounce external reset in INIT_CLK domain (4-cycle)
+    (* ASYNC_REG = "true" *) (* shift_extract = "{no}" *)
+    reg [0:3] debounce_gt_rst_r = 4'h0;
+    reg       gt_rst_r          = 1'b0;
+
+    always @(posedge init_clk)
+        debounce_gt_rst_r <= {rst_sync_r2, debounce_gt_rst_r[0:2]};
+
+    always @(posedge init_clk)
+        gt_rst_r <= &debounce_gt_rst_r;
+
+    // CDC: sync gt_rst_r from INIT_CLK to USER_CLK (5-stage pipeline)
+    (* ASYNC_REG = "true" *) (* shift_extract = "{no}" *)
+    reg gt_rst_cdc1 = 1'b1, gt_rst_cdc2 = 1'b1, gt_rst_cdc3 = 1'b1;
+    (* shift_extract = "{no}" *)
+    reg gt_rst_cdc4 = 1'b1, gt_rst_cdc5 = 1'b1;
+
+    always @(posedge user_clk) begin
+        gt_rst_cdc1 <= gt_rst_r;
+        gt_rst_cdc2 <= gt_rst_cdc1;
+        gt_rst_cdc3 <= gt_rst_cdc2;
+        gt_rst_cdc4 <= gt_rst_cdc3;
+        gt_rst_cdc5 <= gt_rst_cdc4;
     end
 
-    assign pma_init = pma_init_r;
+    wire gt_rst_sync = gt_rst_cdc5;
 
-    //------------------------------------------------------------------------
-    // Protocol reset (reset_pb) — generated in user_clk domain
-    //------------------------------------------------------------------------
-    // Matches the Xilinx Aurora support_reset_logic pattern:
-    //  • pma_init_r (init_clk domain) is sync'd to user_clk via a
-    //    2-stage ASYNC_REG reset bridge.
-    //  • While pma_init_r is active, reset_pb is held HIGH via async
-    //    preset — this works even before user_clk starts toggling.
-    //  • After pma_init_r deasserts and user_clk is running, the sync
-    //    chain cleanly deasserts reset_pb after a 4-cycle debounce hold.
-    //  • link_reset_out is NOT fed back into reset_pb.  The Xilinx
-    //    example design leaves link_reset_out unconnected; Aurora handles
-    //    link-up retries internally once the protocol reset deasserts.
-    //------------------------------------------------------------------------
+    // SYSTEM_RESET (reset_pb) — debounced in USER_CLK domain
+    // When gt_rst_sync=1: force all 1s (hold protocol reset).
+    // When gt_rst_sync=0: shift in 1'b0 (external RESET pin unused, tied low).
+    reg [0:3] reset_debounce_r = 4'h0;
+    reg       reset_pb_r       = 1'b1;
 
-    // Reset bridge: synchronise pma_init_r deassertion to user_clk domain.
-    // Assertion is asynchronous (immediate); deassertion is synchronous.
-    (* ASYNC_REG = "true" *) reg pma_init_user_r1;
-    (* ASYNC_REG = "true" *) reg pma_init_user_r2;
-
-    always @(posedge user_clk or posedge pma_init_r) begin
-        if (pma_init_r) begin
-            pma_init_user_r1 <= 1'b1;
-            pma_init_user_r2 <= 1'b1;
-        end else begin
-            pma_init_user_r1 <= 1'b0;
-            pma_init_user_r2 <= pma_init_user_r1;
-        end
-    end
-
-    // Debounce: hold reset_pb for 4 extra user_clk cycles after
-    // pma_init_user_r2 deasserts (matches Xilinx support_reset_logic).
-    reg [3:0] pb_debounce;
-
-    always @(posedge user_clk or posedge pma_init_user_r2) begin
-        if (pma_init_user_r2)
-            pb_debounce <= 4'b1111;
+    always @(posedge user_clk)
+        if (gt_rst_sync)
+            reset_debounce_r <= 4'b1111;
         else
-            pb_debounce <= {1'b0, pb_debounce[3:1]};
-    end
+            reset_debounce_r <= {1'b0, reset_debounce_r[0:2]};
 
-    assign reset_pb = |pb_debounce;
+    always @(posedge user_clk)
+        reset_pb_r <= &reset_debounce_r;
+
+    assign reset_pb = reset_pb_r;
+
+    // GT_RESET_OUT (pma_init) — delayed 20 INIT_CLK cycles after gt_rst_r
+    // Ensures protocol logic is reset before GT transceiver resets.
+    reg [19:0] dly_gt_rst_r = 20'h00000;
+
+    always @(posedge init_clk)
+        dly_gt_rst_r <= {dly_gt_rst_r[18:0], gt_rst_r};
+
+    assign pma_init = dly_gt_rst_r[18];
 
     //------------------------------------------------------------------------
     // Status outputs
