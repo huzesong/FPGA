@@ -191,6 +191,7 @@ module aurora_top (
         .sys_clk_p      (sys_clk_p),
         .sys_clk_n      (sys_clk_n),
         .tx_out_clk     (ch0_tx_out_clk),
+        .gt_pll_lock    (ch0_gt_pll_lock),
         .gt_refclk      (gt_refclk),
         .user_clk       (user_clk),
         .sync_clk       (sync_clk),
@@ -277,39 +278,52 @@ module aurora_top (
 
     //------------------------------------------------------------------------
     // GTHE2_COMMON for Quad 0
+    // Parameters matched to Xilinx-generated gt_common_wrapper for
+    // Aurora 64B66B on 7-series GTH, 10 Gbps, 156.25 MHz refclk.
     //------------------------------------------------------------------------
     GTHE2_COMMON #(
-        .SIM_RESET_SPEEDUP  ("TRUE"),
-        .SIM_QPLLREFCLK_SEL (3'b001),
-        .SIM_VERSION        ("2.0"),
-        .BIAS_CFG           (64'h0000040000001000),
-        .COMMON_CFG         (32'h00000000),
-        .QPLL_CFG           (27'h0680181),
-        .QPLL_CLKOUT_CFG    (4'b0000),
+        .SIM_RESET_SPEEDUP   ("TRUE"),
+        .SIM_QPLLREFCLK_SEL  (3'b001),
+        .SIM_VERSION         ("2.0"),
+        .BIAS_CFG            (64'h0000040000001050),
+        .COMMON_CFG          (32'h0000001C),
+        .QPLL_CFG            (27'h04801C7),
+        .QPLL_CLKOUT_CFG     (4'b1111),
         .QPLL_COARSE_FREQ_OVRD       (6'b010000),
         .QPLL_COARSE_FREQ_OVRD_EN    (1'b0),
-        .QPLL_CP             (10'b0000011111),
-        .QPLL_CP_MONITOR_EN  (1'b0),
-        .QPLL_DMONITOR_SEL   (1'b0),
-        .QPLL_FBDIV           (10'b0101000000),  // FBDIV=66 per UG476 Table 2-17
+        .QPLL_CP              (10'b0000011111),
+        .QPLL_CP_MONITOR_EN   (1'b0),
+        .QPLL_DMONITOR_SEL    (1'b0),
+        .QPLL_FBDIV           (10'b0011100000),  // FBDIV=64 → VCO 10 GHz (GTH encoding)
         .QPLL_FBDIV_MONITOR_EN (1'b0),
-        .QPLL_FBDIV_RATIO      (1'b0),
-        .QPLL_INIT_CFG         (24'h000006),
-        .QPLL_LOCK_CFG         (16'h21E8),
-        .QPLL_LPF              (4'b1111),
-        .QPLL_REFCLK_DIV       (1)
+        .QPLL_FBDIV_RATIO     (1'b1),            // 1'b1 for FBDIV != 66
+        .QPLL_INIT_CFG        (24'h000006),
+        .QPLL_LOCK_CFG        (16'h05E8),
+        .QPLL_LPF             (4'b1111),
+        .QPLL_REFCLK_DIV      (1),
+        .RSVD_ATTR0           (16'h0000),
+        .RSVD_ATTR1           (16'h0000),
+        .QPLL_RP_COMP         (1'b0),
+        .QPLL_VTRL_RESET      (2'b00),
+        .RCAL_CFG             (2'b00)
     ) u_gthe2_common_q0 (
         .QPLLOUTCLK          (q0_qpllclk),
         .QPLLOUTREFCLK       (q0_qpllrefclk),
         .QPLLLOCK            (q0_qplllock),
         .QPLLLOCKDETCLK      (init_clk),
         .QPLLLOCKEN          (1'b1),
+        .QPLLOUTRESET        (1'b0),
         .QPLLPD              (1'b0),
         .QPLLREFCLKLOST      (q0_qpllrefclklost),
         .QPLLREFCLKSEL       (3'b001),
         .QPLLRESET           (q0_qpllreset),
+        .QPLLRSVD1           (16'b0),
+        .QPLLRSVD2           (5'b11111),
         .QPLLDMONITOR        (),
-        .QPLLREFCLK          (1'b0),
+        .QPLLFBCLKLOST       (),
+        .REFCLKOUTMONITOR    (),
+        .PMARSVDOUT          (),
+        // Bandgap
         .BGBYPASSB           (1'b1),
         .BGMONITORENB        (1'b1),
         .BGPDB               (1'b1),
@@ -324,7 +338,7 @@ module aurora_top (
         .DRPEN               (1'b0),
         .DRPRDY              (),
         .DRPWE               (1'b0),
-        // Unused
+        // Reference clocks
         .GTGREFCLK           (1'b0),
         .GTNORTHREFCLK0      (1'b0),
         .GTNORTHREFCLK1      (1'b0),
@@ -337,39 +351,52 @@ module aurora_top (
 
     //------------------------------------------------------------------------
     // GTHE2_COMMON for Quad 1
+    // Parameters matched to Xilinx-generated gt_common_wrapper for
+    // Aurora 64B66B on 7-series GTH, 10 Gbps, 156.25 MHz refclk.
     //------------------------------------------------------------------------
     GTHE2_COMMON #(
-        .SIM_RESET_SPEEDUP  ("TRUE"),
-        .SIM_QPLLREFCLK_SEL (3'b001),
-        .SIM_VERSION        ("2.0"),
-        .BIAS_CFG           (64'h0000040000001000),
-        .COMMON_CFG         (32'h00000000),
-        .QPLL_CFG           (27'h0680181),
-        .QPLL_CLKOUT_CFG    (4'b0000),
+        .SIM_RESET_SPEEDUP   ("TRUE"),
+        .SIM_QPLLREFCLK_SEL  (3'b001),
+        .SIM_VERSION         ("2.0"),
+        .BIAS_CFG            (64'h0000040000001050),
+        .COMMON_CFG          (32'h0000001C),
+        .QPLL_CFG            (27'h04801C7),
+        .QPLL_CLKOUT_CFG     (4'b1111),
         .QPLL_COARSE_FREQ_OVRD       (6'b010000),
         .QPLL_COARSE_FREQ_OVRD_EN    (1'b0),
-        .QPLL_CP             (10'b0000011111),
-        .QPLL_CP_MONITOR_EN  (1'b0),
-        .QPLL_DMONITOR_SEL   (1'b0),
-        .QPLL_FBDIV           (10'b0101000000),  // FBDIV=66 per UG476 Table 2-17
+        .QPLL_CP              (10'b0000011111),
+        .QPLL_CP_MONITOR_EN   (1'b0),
+        .QPLL_DMONITOR_SEL    (1'b0),
+        .QPLL_FBDIV           (10'b0011100000),  // FBDIV=64 → VCO 10 GHz (GTH encoding)
         .QPLL_FBDIV_MONITOR_EN (1'b0),
-        .QPLL_FBDIV_RATIO      (1'b0),
-        .QPLL_INIT_CFG         (24'h000006),
-        .QPLL_LOCK_CFG         (16'h21E8),
-        .QPLL_LPF              (4'b1111),
-        .QPLL_REFCLK_DIV       (1)
+        .QPLL_FBDIV_RATIO     (1'b1),            // 1'b1 for FBDIV != 66
+        .QPLL_INIT_CFG        (24'h000006),
+        .QPLL_LOCK_CFG        (16'h05E8),
+        .QPLL_LPF             (4'b1111),
+        .QPLL_REFCLK_DIV      (1),
+        .RSVD_ATTR0           (16'h0000),
+        .RSVD_ATTR1           (16'h0000),
+        .QPLL_RP_COMP         (1'b0),
+        .QPLL_VTRL_RESET      (2'b00),
+        .RCAL_CFG             (2'b00)
     ) u_gthe2_common_q1 (
         .QPLLOUTCLK          (q1_qpllclk),
         .QPLLOUTREFCLK       (q1_qpllrefclk),
         .QPLLLOCK            (q1_qplllock),
         .QPLLLOCKDETCLK      (init_clk),
         .QPLLLOCKEN          (1'b1),
+        .QPLLOUTRESET        (1'b0),
         .QPLLPD              (1'b0),
         .QPLLREFCLKLOST      (q1_qpllrefclklost),
         .QPLLREFCLKSEL       (3'b001),
         .QPLLRESET           (q1_qpllreset),
+        .QPLLRSVD1           (16'b0),
+        .QPLLRSVD2           (5'b11111),
         .QPLLDMONITOR        (),
-        .QPLLREFCLK          (1'b0),
+        .QPLLFBCLKLOST       (),
+        .REFCLKOUTMONITOR    (),
+        .PMARSVDOUT          (),
+        // Bandgap
         .BGBYPASSB           (1'b1),
         .BGMONITORENB        (1'b1),
         .BGPDB               (1'b1),
@@ -384,7 +411,7 @@ module aurora_top (
         .DRPEN               (1'b0),
         .DRPRDY              (),
         .DRPWE               (1'b0),
-        // Unused
+        // Reference clocks
         .GTGREFCLK           (1'b0),
         .GTNORTHREFCLK0      (1'b0),
         .GTNORTHREFCLK1      (1'b0),

@@ -16,6 +16,7 @@ module aurora_clock_module (
     input  wire  sys_clk_n,
     // From Aurora IP
     input  wire  tx_out_clk,
+    input  wire  gt_pll_lock,     // QPLL lock status (from Aurora gt_pll_lock)
     // Outputs
     output wire  gt_refclk,         // Single-ended GT reference clock
     output wire  user_clk,          // User clock for Aurora data path
@@ -65,6 +66,6 @@ module aurora_clock_module (
     );
 
     assign drp_clk        = init_clk;
-    assign mmcm_not_locked = 1'b0;   // No MMCM, always "locked"
+    assign mmcm_not_locked = ~gt_pll_lock;  // Aurora expects 1 = not locked
 
 endmodule
