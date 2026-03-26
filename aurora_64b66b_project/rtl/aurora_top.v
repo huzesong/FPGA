@@ -233,7 +233,7 @@ module aurora_top (
         .QPLL_CP             (10'b0000011111),
         .QPLL_CP_MONITOR_EN  (1'b0),
         .QPLL_DMONITOR_SEL   (1'b0),
-        .QPLL_FBDIV           (10'b0011000000),
+        .QPLL_FBDIV           (10'b0101000000),  // FBDIV=66 per UG476 Table 2-17
         .QPLL_FBDIV_MONITOR_EN (1'b0),
         .QPLL_FBDIV_RATIO      (1'b0),
         .QPLL_INIT_CFG         (24'h000006),
@@ -293,7 +293,7 @@ module aurora_top (
         .QPLL_CP             (10'b0000011111),
         .QPLL_CP_MONITOR_EN  (1'b0),
         .QPLL_DMONITOR_SEL   (1'b0),
-        .QPLL_FBDIV           (10'b0011000000),
+        .QPLL_FBDIV           (10'b0101000000),  // FBDIV=66 per UG476 Table 2-17
         .QPLL_FBDIV_MONITOR_EN (1'b0),
         .QPLL_FBDIV_RATIO      (1'b0),
         .QPLL_INIT_CFG         (24'h000006),
