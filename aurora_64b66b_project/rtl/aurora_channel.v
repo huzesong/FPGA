@@ -85,12 +85,13 @@ module aurora_channel #(
 
     //------------------------------------------------------------------------
     // TX Module: data generation + frame assembly
+    // (Reset from Aurora IP sys_reset_out, matching Xilinx example design)
     //------------------------------------------------------------------------
     aurora_tx_module #(
         .FRAME_PAYLOAD_BEATS (FRAME_PAYLOAD_BEATS)
     ) u_tx_module (
         .clk              (user_clk),
-        .rst              (reset_pb),
+        .rst              (sys_reset_out),
         .channel_up       (channel_up),
         .s_axi_tx_tdata   (s_axi_tx_tdata),
         .s_axi_tx_tkeep   (s_axi_tx_tkeep),
@@ -104,7 +105,7 @@ module aurora_channel #(
     //------------------------------------------------------------------------
     aurora_rx_module u_rx_module (
         .clk              (user_clk),
-        .rst              (reset_pb),
+        .rst              (sys_reset_out),
         .channel_up       (channel_up),
         .m_axi_rx_tdata   (m_axi_rx_tdata),
         .m_axi_rx_tkeep   (m_axi_rx_tkeep),
@@ -121,7 +122,7 @@ module aurora_channel #(
     //------------------------------------------------------------------------
     aurora_data_check u_data_check (
         .clk              (user_clk),
-        .rst              (reset_pb),
+        .rst              (sys_reset_out),
         .rx_data          (rx_payload_data),
         .rx_data_valid    (rx_payload_valid),
         .rx_sof           (rx_payload_sof),

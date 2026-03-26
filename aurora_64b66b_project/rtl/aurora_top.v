@@ -115,8 +115,66 @@ module aurora_top (
         end
     end
 
-    assign reset_pb = rst_sync_r2 | pma_init_r;  // Keep protocol in reset during GT init
     assign pma_init = pma_init_r;
+
+    //------------------------------------------------------------------------
+    // Protocol reset (reset_pb) — generated in user_clk domain
+    //------------------------------------------------------------------------
+    // Follows the Xilinx Aurora example-design reset pattern:
+    //  • Held HIGH while pma_init is active (reset bridge synchroniser
+    //    provides clean deassertion on a user_clk edge).
+    //  • After user_clk starts, held HIGH for 256 user_clk cycles so the
+    //    Aurora core sees a clean, long reset after GT initialisation.
+    //  • Re-triggered whenever either channel asserts link_reset_out,
+    //    providing the retry mechanism the Aurora core needs when the
+    //    initial handshake fails (e.g. CDR not yet locked on first try).
+    //------------------------------------------------------------------------
+
+    // Reset bridge: synchronise pma_init_r deassertion to user_clk domain.
+    // Assertion is asynchronous (immediate); deassertion is synchronous.
+    (* ASYNC_REG = "true" *) reg pma_init_user_r1;
+    (* ASYNC_REG = "true" *) reg pma_init_user_r2;
+
+    always @(posedge user_clk or posedge pma_init_r) begin
+        if (pma_init_r) begin
+            pma_init_user_r1 <= 1'b1;
+            pma_init_user_r2 <= 1'b1;
+        end else begin
+            pma_init_user_r1 <= 1'b0;
+            pma_init_user_r2 <= pma_init_user_r1;
+        end
+    end
+
+    reg [7:0] pb_reset_cnt;
+    reg       reset_pb_int;
+    reg       pb_hold_done;
+
+    always @(posedge user_clk or posedge pma_init_user_r2) begin
+        if (pma_init_user_r2) begin
+            pb_reset_cnt <= 8'd0;
+            reset_pb_int <= 1'b1;
+            pb_hold_done <= 1'b0;
+        end else if (!pb_hold_done) begin
+            // Hold phase: count 256 user_clk cycles with reset_pb asserted
+            if (pb_reset_cnt < 8'd255) begin
+                pb_reset_cnt <= pb_reset_cnt + 8'd1;
+                reset_pb_int <= 1'b1;
+            end else begin
+                reset_pb_int <= 1'b0;
+                pb_hold_done <= 1'b1;
+            end
+        end else if (ch0_link_reset_out || ch1_link_reset_out) begin
+            // Link-reset feedback: Aurora IP could not establish the link;
+            // re-assert protocol reset and try again.
+            pb_reset_cnt <= 8'd0;
+            reset_pb_int <= 1'b1;
+            pb_hold_done <= 1'b0;
+        end else begin
+            reset_pb_int <= 1'b0;
+        end
+    end
+
+    assign reset_pb = reset_pb_int;
 
     //------------------------------------------------------------------------
     // Status outputs
