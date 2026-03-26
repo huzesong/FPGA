@@ -99,7 +99,7 @@ module aurora_top (
     //  1. Debounces GT_RESET_IN (4 cycles, INIT_CLK) → gt_rst_r
     //  2. Syncs gt_rst_r to USER_CLK (5-stage CDC) → gt_rst_sync
     //  3. Generates SYSTEM_RESET (reset_pb) in USER_CLK domain
-    //  4. Delays GT_RESET_OUT (pma_init) by 20 INIT_CLK cycles
+    //  4. Delays GT_RESET_OUT (pma_init) by ~19 INIT_CLK cycles
     //     so protocol logic resets before GT transceiver resets.
     //  • link_reset_out is NOT fed back into reset_pb.
     //------------------------------------------------------------------------
@@ -155,8 +155,9 @@ module aurora_top (
 
     assign reset_pb = reset_pb_r;
 
-    // GT_RESET_OUT (pma_init) — delayed 20 INIT_CLK cycles after gt_rst_r
+    // GT_RESET_OUT (pma_init) — delayed ~19 INIT_CLK cycles after gt_rst_r
     // Ensures protocol logic is reset before GT transceiver resets.
+    // (Matches Xilinx SUPPORT_RESET_LOGIC: 20-bit shift, output at bit [18])
     reg [19:0] dly_gt_rst_r = 20'h00000;
 
     always @(posedge init_clk)
