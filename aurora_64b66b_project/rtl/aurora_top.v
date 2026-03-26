@@ -120,14 +120,16 @@ module aurora_top (
     //------------------------------------------------------------------------
     // Protocol reset (reset_pb) — generated in user_clk domain
     //------------------------------------------------------------------------
-    // Follows the Xilinx Aurora example-design reset pattern:
-    //  • Held HIGH while pma_init is active (reset bridge synchroniser
-    //    provides clean deassertion on a user_clk edge).
-    //  • After user_clk starts, held HIGH for 256 user_clk cycles so the
-    //    Aurora core sees a clean, long reset after GT initialisation.
-    //  • Re-triggered whenever either channel asserts link_reset_out,
-    //    providing the retry mechanism the Aurora core needs when the
-    //    initial handshake fails (e.g. CDR not yet locked on first try).
+    // Matches the Xilinx Aurora support_reset_logic pattern:
+    //  • pma_init_r (init_clk domain) is sync'd to user_clk via a
+    //    2-stage ASYNC_REG reset bridge.
+    //  • While pma_init_r is active, reset_pb is held HIGH via async
+    //    preset — this works even before user_clk starts toggling.
+    //  • After pma_init_r deasserts and user_clk is running, the sync
+    //    chain cleanly deasserts reset_pb after a 4-cycle debounce hold.
+    //  • link_reset_out is NOT fed back into reset_pb.  The Xilinx
+    //    example design leaves link_reset_out unconnected; Aurora handles
+    //    link-up retries internally once the protocol reset deasserts.
     //------------------------------------------------------------------------
 
     // Reset bridge: synchronise pma_init_r deassertion to user_clk domain.
@@ -145,36 +147,18 @@ module aurora_top (
         end
     end
 
-    reg [7:0] pb_reset_cnt;
-    reg       reset_pb_int;
-    reg       pb_hold_done;
+    // Debounce: hold reset_pb for 4 extra user_clk cycles after
+    // pma_init_user_r2 deasserts (matches Xilinx support_reset_logic).
+    reg [3:0] pb_debounce;
 
     always @(posedge user_clk or posedge pma_init_user_r2) begin
-        if (pma_init_user_r2) begin
-            pb_reset_cnt <= 8'd0;
-            reset_pb_int <= 1'b1;
-            pb_hold_done <= 1'b0;
-        end else if (!pb_hold_done) begin
-            // Hold phase: count 256 user_clk cycles with reset_pb asserted
-            if (pb_reset_cnt < 8'd255) begin
-                pb_reset_cnt <= pb_reset_cnt + 8'd1;
-                reset_pb_int <= 1'b1;
-            end else begin
-                reset_pb_int <= 1'b0;
-                pb_hold_done <= 1'b1;
-            end
-        end else if (ch0_link_reset_out || ch1_link_reset_out) begin
-            // Link-reset feedback: Aurora IP could not establish the link;
-            // re-assert protocol reset and try again.
-            pb_reset_cnt <= 8'd0;
-            reset_pb_int <= 1'b1;
-            pb_hold_done <= 1'b0;
-        end else begin
-            reset_pb_int <= 1'b0;
-        end
+        if (pma_init_user_r2)
+            pb_debounce <= 4'b1111;
+        else
+            pb_debounce <= {1'b0, pb_debounce[3:1]};
     end
 
-    assign reset_pb = reset_pb_int;
+    assign reset_pb = |pb_debounce;
 
     //------------------------------------------------------------------------
     // Status outputs
@@ -294,9 +278,13 @@ module aurora_top (
         .QPLL_CP              (10'b0000011111),
         .QPLL_CP_MONITOR_EN   (1'b0),
         .QPLL_DMONITOR_SEL    (1'b0),
-        .QPLL_FBDIV           (10'b0011100000),  // FBDIV=64 → VCO 10 GHz (GTH encoding)
+        // QPLL_FBDIV encoding (shared between GTX and GTH, from Xilinx ten_gig_pcs_pma):
+        //   FBDIV=66 → 10'b0101000000, RATIO=1'b0  (10.3125 Gbps — standard Aurora rate)
+        //   FBDIV=64 → 10'b0011100000, RATIO=1'b1  (10.0 Gbps)
+        //   FBDIV=80 → 10'b0100100000, RATIO=1'b1  (10.0 Gbps with 125 MHz refclk)
+        .QPLL_FBDIV           (10'b0101000000),  // FBDIV=66 → VCO 10.3125 GHz
         .QPLL_FBDIV_MONITOR_EN (1'b0),
-        .QPLL_FBDIV_RATIO     (1'b1),            // 1'b1 for FBDIV != 66
+        .QPLL_FBDIV_RATIO     (1'b0),            // 1'b0 for FBDIV=66
         .QPLL_INIT_CFG        (24'h000006),
         .QPLL_LOCK_CFG        (16'h05E8),
         .QPLL_LPF             (4'b1111),
@@ -367,9 +355,13 @@ module aurora_top (
         .QPLL_CP              (10'b0000011111),
         .QPLL_CP_MONITOR_EN   (1'b0),
         .QPLL_DMONITOR_SEL    (1'b0),
-        .QPLL_FBDIV           (10'b0011100000),  // FBDIV=64 → VCO 10 GHz (GTH encoding)
+        // QPLL_FBDIV encoding (shared between GTX and GTH, from Xilinx ten_gig_pcs_pma):
+        //   FBDIV=66 → 10'b0101000000, RATIO=1'b0  (10.3125 Gbps — standard Aurora rate)
+        //   FBDIV=64 → 10'b0011100000, RATIO=1'b1  (10.0 Gbps)
+        //   FBDIV=80 → 10'b0100100000, RATIO=1'b1  (10.0 Gbps with 125 MHz refclk)
+        .QPLL_FBDIV           (10'b0101000000),  // FBDIV=66 → VCO 10.3125 GHz
         .QPLL_FBDIV_MONITOR_EN (1'b0),
-        .QPLL_FBDIV_RATIO     (1'b1),            // 1'b1 for FBDIV != 66
+        .QPLL_FBDIV_RATIO     (1'b0),            // 1'b0 for FBDIV=66
         .QPLL_INIT_CFG        (24'h000006),
         .QPLL_LOCK_CFG        (16'h05E8),
         .QPLL_LPF             (4'b1111),
