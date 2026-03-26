@@ -115,7 +115,7 @@ module aurora_top (
         end
     end
 
-    assign reset_pb = rst_sync_r2;
+    assign reset_pb = rst_sync_r2 | pma_init_r;  // Keep protocol in reset during GT init
     assign pma_init = pma_init_r;
 
     //------------------------------------------------------------------------
@@ -226,18 +226,18 @@ module aurora_top (
         .SIM_VERSION        ("2.0"),
         .BIAS_CFG           (64'h0000040000001000),
         .COMMON_CFG         (32'h00000000),
-        .QPLL_CFG           (27'h04801C7),
+        .QPLL_CFG           (27'h0680181),
         .QPLL_CLKOUT_CFG    (4'b0000),
         .QPLL_COARSE_FREQ_OVRD       (6'b010000),
         .QPLL_COARSE_FREQ_OVRD_EN    (1'b0),
         .QPLL_CP             (10'b0000011111),
         .QPLL_CP_MONITOR_EN  (1'b0),
         .QPLL_DMONITOR_SEL   (1'b0),
-        .QPLL_FBDIV           (10'b0010000000),
+        .QPLL_FBDIV           (10'b0011000000),
         .QPLL_FBDIV_MONITOR_EN (1'b0),
-        .QPLL_FBDIV_RATIO      (1'b1),
+        .QPLL_FBDIV_RATIO      (1'b0),
         .QPLL_INIT_CFG         (24'h000006),
-        .QPLL_LOCK_CFG         (16'h05E8),
+        .QPLL_LOCK_CFG         (16'h21E8),
         .QPLL_LPF              (4'b1111),
         .QPLL_REFCLK_DIV       (1)
     ) u_gthe2_common_q0 (
@@ -251,7 +251,7 @@ module aurora_top (
         .QPLLREFCLKSEL       (3'b001),
         .QPLLRESET           (q0_qpllreset),
         .QPLLDMONITOR        (),
-        .QPLLREFCLK          (gt_refclk),
+        .QPLLREFCLK          (1'b0),
         .BGBYPASSB           (1'b1),
         .BGMONITORENB        (1'b1),
         .BGPDB               (1'b1),
@@ -286,18 +286,18 @@ module aurora_top (
         .SIM_VERSION        ("2.0"),
         .BIAS_CFG           (64'h0000040000001000),
         .COMMON_CFG         (32'h00000000),
-        .QPLL_CFG           (27'h04801C7),
+        .QPLL_CFG           (27'h0680181),
         .QPLL_CLKOUT_CFG    (4'b0000),
         .QPLL_COARSE_FREQ_OVRD       (6'b010000),
         .QPLL_COARSE_FREQ_OVRD_EN    (1'b0),
         .QPLL_CP             (10'b0000011111),
         .QPLL_CP_MONITOR_EN  (1'b0),
         .QPLL_DMONITOR_SEL   (1'b0),
-        .QPLL_FBDIV           (10'b0010000000),
+        .QPLL_FBDIV           (10'b0011000000),
         .QPLL_FBDIV_MONITOR_EN (1'b0),
-        .QPLL_FBDIV_RATIO      (1'b1),
+        .QPLL_FBDIV_RATIO      (1'b0),
         .QPLL_INIT_CFG         (24'h000006),
-        .QPLL_LOCK_CFG         (16'h05E8),
+        .QPLL_LOCK_CFG         (16'h21E8),
         .QPLL_LPF              (4'b1111),
         .QPLL_REFCLK_DIV       (1)
     ) u_gthe2_common_q1 (
@@ -311,7 +311,7 @@ module aurora_top (
         .QPLLREFCLKSEL       (3'b001),
         .QPLLRESET           (q1_qpllreset),
         .QPLLDMONITOR        (),
-        .QPLLREFCLK          (gt_refclk),
+        .QPLLREFCLK          (1'b0),
         .BGBYPASSB           (1'b1),
         .BGMONITORENB        (1'b1),
         .BGPDB               (1'b1),
