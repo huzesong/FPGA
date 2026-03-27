@@ -58,14 +58,18 @@ module aurora_frame_gen #(
         end else begin
             case (state)
                 S_IDLE: begin
-                    // Preload header data into output registers
-                    tx_tdata  <= {SYNC_WORD, frame_cnt,
-                                  32'd0, 160'd0};
-                    tx_tkeep  <= 32'hFFFF_FFFF;
-                    tx_tlast  <= 1'b0;
-                    tx_tvalid <= 1'b1;
-                    beat_cnt  <= 16'd0;
-                    state     <= S_HEADER;
+                    // Wait for any pending beat to be consumed before
+                    // loading the next frame header (prevents overwriting
+                    // the last payload beat when tx_tready is low).
+                    if (!tx_tvalid || tx_tready) begin
+                        tx_tdata  <= {SYNC_WORD, frame_cnt,
+                                      32'd0, 160'd0};
+                        tx_tkeep  <= 32'hFFFF_FFFF;
+                        tx_tlast  <= 1'b0;
+                        tx_tvalid <= 1'b1;
+                        beat_cnt  <= 16'd0;
+                        state     <= S_HEADER;
+                    end
                 end
 
                 S_HEADER: begin
