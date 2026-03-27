@@ -40,7 +40,10 @@ module aurora_data_check (
             beat_count <= beat_count + 32'd1;
 
             if (!synced) begin
-                // First valid beat: synchronize to received data
+                // First valid beat: synchronize expected counter to received
+                // data and verify internal consistency across all 8 words.
+                // Even if internal check fails (error flagged), sync is
+                // accepted because the data_gen pattern is deterministic.
                 expected_counter <= rx_data[31:0] + 32'd8;
                 synced           <= 1'b1;
                 // Check data consistency within this beat

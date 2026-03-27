@@ -29,6 +29,7 @@ module aurora_data_gen (
     end
 
     // Combinational data output: 8 consecutive 32-bit values
+    // Bit ordering: [255:224]=counter+7, [223:192]=counter+6, ..., [31:0]=counter
     assign data_out = {counter + 32'd7, counter + 32'd6,
                        counter + 32'd5, counter + 32'd4,
                        counter + 32'd3, counter + 32'd2,
